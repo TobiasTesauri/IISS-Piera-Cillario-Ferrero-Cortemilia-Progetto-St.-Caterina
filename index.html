@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Nocciola di Cortemilia - Dal Campo al Prodotto</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <!-- Google Fonts per aspetto moderno -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        :root{
+            --bg:#FFFDF9; --card:#FFFFFF; --accent:#7A4A1A; --accent-2:#2F5D41; --muted:#6B7280; --glass:rgba(255,255,255,0.88);
+            --max-width:1160px; --radius:14px;
+        }
+        *{box-sizing:border-box;margin:0;padding:0}
+        html,body{height:100%}
+        body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial; background:linear-gradient(180deg,var(--bg) 0%,#fff 100%);color:#0f1724;line-height:1.5}
+        .container{max-width:var(--max-width);margin:36px auto;padding:28px}
+
+        header{display:flex;align-items:center;gap:20px;background:var(--glass);padding:18px;border-radius:var(--radius);box-shadow:0 10px 30px rgba(15,23,42,0.06)}
+        #schoolLogo{height:84px;width:auto;border-radius:10px;object-fit:contain}
+        .site-title{flex:1}
+        .site-title h1{font-family:'Playfair Display',serif;color:var(--accent);font-size:1.8rem;margin-bottom:4px;letter-spacing:0.2px}
+        .site-title p{color:var(--muted);font-size:0.98rem}
+
+        /* Hero */
+        .hero{display:flex;align-items:center;justify-content:space-between;gap:22px;padding:34px;border-radius:12px;background:linear-gradient(90deg,rgba(255,251,247,1),rgba(255,247,238,1));box-shadow:0 18px 40px rgba(2,6,23,0.05);margin-bottom:20px}
+        .hero-inner h2{font-size:2.2rem;margin:0 0 10px;font-weight:700}
+        .hero-lead{color:var(--muted);max-width:720px;font-size:1.05rem}
+        .hero-ctas{display:flex;gap:12px;margin-top:14px}
+        .hero-decor{font-size:72px;color:var(--accent);opacity:.95;filter:drop-shadow(0 6px 18px rgba(122,74,26,0.08))}
+        @media (max-width:900px){.hero{flex-direction:column;align-items:flex-start}.hero-decor{align-self:center}}
+
+        .nav-buttons{display:flex;gap:12px}
+        .btn{padding:12px 20px;border-radius:12px;border:none;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:8px;transition:transform .18s ease,box-shadow .18s ease}
+        .btn-primary{background:linear-gradient(90deg,var(--accent),#A0613B);color:white;box-shadow:0 8px 24px rgba(122,74,26,0.14)}
+        .btn-secondary{background:transparent;border:2px solid var(--accent-2);color:var(--accent-2)}
+        .btn-tertiary{background:transparent;border:2px solid var(--accent);color:var(--accent)}
+        .btn:hover{transform:translateY(-4px);box-shadow:0 12px 30px rgba(2,6,23,0.06)}
+
+    .section{display:none;margin-top:22px;background:var(--card);padding:28px;border-radius:var(--radius);box-shadow:0 10px 40px rgba(2,6,23,0.05)}
+        .section.active{display:block}
+
+    /* Loader overlay */
+    .loader-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,10,15,0.45);backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:1200}
+    .loader-overlay.show{opacity:1;pointer-events:auto}
+    .loader-box{background:rgba(255,255,255,0.98);padding:18px 22px;border-radius:12px;display:flex;align-items:center;gap:12px;box-shadow:0 12px 40px rgba(2,6,23,0.12)}
+    .spinner{width:40px;height:40px;border-radius:50%;border:4px solid #f3f3f3;border-top-color:var(--accent);animation:spin 1s linear infinite}
+    .loader-text{color:var(--muted);font-weight:700}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+        .filiera-container{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+    .card,.tappa{background:#fff;padding:18px;border-radius:12px;box-shadow:0 10px 28px rgba(2,6,23,0.04);cursor:pointer;transition:transform .22s,box-shadow .22s}
+        .card:hover,.tappa:hover{transform:translateY(-8px);box-shadow:0 22px 48px rgba(2,6,23,0.08)}
+        .card .icon,.tappa-icon{font-size:1.9rem;margin-bottom:8px}
+        .card h4,.tappa-title{color:var(--accent);margin-bottom:8px;font-weight:700}
+        .card p,.tappa-desc{color:var(--muted);font-size:0.98rem}
+        .card-details,.tappa-details{display:none;margin-top:12px;background:#fbfbfb;padding:14px;border-radius:10px}
+        .card.show .card-details,.tappa-details.show{display:block}
+
+    /* Filiera card visuals */
+    .tappa { position:relative; overflow:visible; display:flex;align-items:flex-start;gap:14px }
+    .tappa .circle { position:relative; flex:0 0 78px;width:78px;height:78px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#fff4ea,#fff8f2);box-shadow:0 8px 22px rgba(122,74,26,0.06)}
+    .tappa .circle svg{width:40px;height:40px}
+    .tappa .circle .nut-mark{position:absolute;right:8px;bottom:8px;width:22px;height:22px;opacity:0.98;pointer-events:none}
+    .tappa .tappa-content{flex:1}
+    .tappa-title{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .tappa-title::after{content:'▾';font-size:1rem;color:var(--muted);transition:transform .22s ease}
+    .tappa.open .tappa-title::after{transform:rotate(-180deg);color:var(--accent-2)}
+
+    /* Entrance animations for cards */
+    .animate-up{opacity:0;transform:translateY(14px);transition:transform .52s cubic-bezier(.2,.9,.2,1),opacity .52s}
+    .animate-up.show{opacity:1;transform:none}
+
+        #map{height:480px;border-radius:10px;margin-top:12px}
+
+        .traccia-form{max-width:760px;margin:18px auto;text-align:left}
+        .traccia-input{width:100%;padding:14px;border:2px solid #E6E7EB;border-radius:12px;font-size:1rem}
+
+        .result-card{display:none;padding:18px;border-radius:12px;background:linear-gradient(180deg,#fffaf0,#fff7ec);border:1px solid rgba(122,74,26,0.12);margin-top:12px}
+        .result-card.show{display:block}
+        .result-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+        .badges{display:flex;gap:8px;align-items:center}
+        .badge{background:var(--accent);color:white;padding:6px 10px;border-radius:999px;font-size:0.85rem}
+        .timeline{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+        .timeline-item{background:#fff;padding:12px;border-radius:8px;border-left:4px solid var(--accent-2)}
+        .action-row{display:flex;gap:10px;margin-top:12px}
+
+        .back-btn{margin-bottom:20px;padding:10px 30px;background:#666;color:white;border:none;border-radius:25px;cursor:pointer;font-size:1em}
+        .back-btn:hover{background:#444}
+
+        h2{color:var(--accent);margin-bottom:20px;font-size:1.6rem}
+    .info-box{background:#FFF8DC;padding:16px;border-radius:10px;margin:16px 0;border-left:4px solid #D2691E}
+    .info-box h3 svg{width:22px;height:22px;vertical-align:middle;margin-right:10px}
+
+        footer{margin-top:28px;text-align:center;color:var(--muted);font-size:0.95rem}
+
+        @media (max-width:900px){header{flex-direction:column;align-items:flex-start}.nav-buttons{width:100%;justify-content:space-between}.site-title h1{font-size:1.3rem}}
+        /* Decorative side photos placed in the white gutters. They are purely visual (aria-hidden) */
+        .side-photo{position:fixed;top:40%;transform:translateY(-50%);width:160px;height:auto;pointer-events:none;z-index:0;filter:drop-shadow(0 12px 28px rgba(15,23,42,0.06));opacity:0.98}
+        .side-photo.left{left:calc((100% - var(--max-width)) / 2 - 80px)}
+        .side-photo.right{right:calc((100% - var(--max-width)) / 2 - 80px)}
+        /* Make sure they stay out of the way and don't cover key UI on narrower screens */
+        @media (max-width:1200px){
+            .side-photo{display:none}
+        }
+        @media (prefers-reduced-motion:reduce){
+            .side-photo{transition:none}
+        }
+    </style>
+</head>
+<body>
+    <!-- Loader overlay for smooth page transitions -->
+    <div id="pageLoader" class="loader-overlay" aria-hidden="true">
+        <div class="loader-box">
+            <div class="spinner" aria-hidden="true"></div>
+            <div class="loader-text">Caricamento...</div>
+        </div>
+    </div>
+    <div class="container">
+        <header>
+            <!-- Salva il logo fornito come 'logo.png' nella stessa cartella del file -->
+            <img id="schoolLogo" src="logo.png" alt="Logo IISS Piera Cillario Ferrero" onerror="this.style.display='none'">
+            <div class="site-title">
+                <h1>La Nocciola di Cortemilia</h1>
+                <p class="subtitle">IISS Piera Cillario Ferrero — Industria e Artigianato per il Made in Italy</p>
+            </div>
+            <div class="nav-buttons">
+                <button class="btn btn-primary" onclick="showSection('home')">Home</button>
+                <button class="btn btn-secondary" onclick="showSection('filiera')">Esplora la Filiera</button>
+                <button class="btn btn-tertiary" onclick="showSection('mappa')">Mappa del Territorio</button>
+                <button class="btn btn-primary" onclick="showSection('traccia')">Traccia il Tuo Lotto</button>
+            </div>
+        </header>
+
+        <div id="home" class="section active">
+            <div class="hero">
+                <div class="hero-inner">
+                    <h2>Benvenuti nella Filiera della Nocciola Piemonte IGP</h2>
+                    <p class="hero-lead">Scopri il percorso dalla coltivazione al prodotto finito. Dimostrazione interattiva e tracciabilità per ogni lotto.</p>
+                    <div class="hero-ctas">
+                        <button class="btn btn-primary" onclick="showSection('filiera')">Esplora la Filiera</button>
+                        <button class="btn btn-tertiary" onclick="showSection('mappa')">Vedi la Mappa</button>
+                        <!-- small nut mark (more detailed) -->
+                        <svg class="nut-mark" viewBox="0 0 24 24" width="22" height="22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                            <path d="M12 2c3 0 6 3 6 6 0 4-2 6-3 8s-3 3-5 3-4-2-5-4-2-5-1-8c1-3 3-6 8-6z" fill="#7A4A1A"/>
+                            <path d="M13.5 9.5c.8.8.8 1.6.2 2.8s-1.4 1.6-2 1.6-1-.5-1.3-1.4S10 10.8 11 10s1.8-.6 2.5-.5z" fill="#F7E7D0" opacity="0.95"/>
+                            <ellipse cx="15.2" cy="6.2" rx="0.9" ry="0.5" fill="#fff" opacity="0.6"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="hero-decor" aria-hidden="true">
+                    <!-- Hero decorative hazelnut SVG -->
+                    <svg width="84" height="84" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                        <defs>
+                            <linearGradient id="g1" x1="0" x2="1" y1="0" y2="1">
+                                <stop offset="0%" stop-color="#A46633"/>
+                                <stop offset="100%" stop-color="#7A4A1A"/>
+                            </linearGradient>
+                            <linearGradient id="g2" x1="0" x2="1" y1="0" y2="1">
+                                <stop offset="0%" stop-color="#F7E7D0"/>
+                                <stop offset="100%" stop-color="#F0DDBF"/>
+                            </linearGradient>
+                        </defs>
+                        <g fill="none" fill-rule="evenodd">
+                            <!-- Use the same stylized hazelnut paths as the small nut-mark icons, scaled to fit the 64x64 viewBox -->
+                            <g transform="translate(9,10) scale(2)">
+                                <path d="M12 2c3 0 6 3 6 6 0 4-2 6-3 8s-3 3-5 3-4-2-5-4-2-5-1-8c1-3 3-6 8-6z" fill="#7A4A1A"/>
+                                <path d="M13.5 9.5c.8.8.8 1.6.2 2.8s-1.4 1.6-2 1.6-1-.5-1.3-1.4S10 10.8 11 10s1.8-.6 2.5-.5z" fill="#F7E7D0" opacity="0.95"/>
+                                <ellipse cx="15.2" cy="6.2" rx="0.9" ry="0.5" fill="#fff" opacity="0.6"/>
+                            </g>
+                            <!-- subtle curved stroke to suggest surface shading, kept light like before -->
+                            <path d="M18 20c6-6 22-6 28 0" stroke="#7A4A1A" stroke-opacity="0.08" stroke-width="2"/>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+            <div class="info-box">
+                <h3>
+                    <!-- Icon: mountain -->
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path d="M2 20h20L12 4 2 20z" fill="#7A4A1A" opacity="0.95"/><path d="M8 14l4-6 4 6H8z" fill="#F7E7D0"/></svg>
+                    Il Territorio di Cortemilia e l'Alta Langa
+                </h3>
+                <p>Cortemilia, nel cuore dell'Alta Langa, è riconosciuta come la capitale della Nocciola Piemonte IGP. Le colline tra i 300 e i 600 metri di altitudine, il clima ideale e il terreno argilloso-calcareo creano le condizioni perfette per la coltivazione della pregiata Tonda Gentile Trilobata, considerata la migliore nocciola al mondo.</p>
+            </div>
+            <div class="info-box">
+                <h3>
+                    <!-- Icon: sparkle -->
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path d="M12 2l1.8 4.4L18 8l-4.2 1.6L12 14 10.2 9.6 6 8l4.2-1.6L12 2z" fill="#F4C06B"/></svg>
+                    La Nocciola Tonda Gentile Trilobata
+                </h3>
+                <p><strong>Nocciola Piemonte IGP</strong> - Indicazione Geografica Protetta dal 1993<br>
+                <strong>Caratteristiche uniche</strong> - Forma perfettamente sferica, aroma intenso, resa elevata dopo tostatura<br>
+                <strong>Eccellenza mondiale</strong> - Ricercata dalle migliori industrie dolciarie e pasticcerie<br>
+                <strong>Territorio UNESCO</strong> - Le Langhe sono Patrimonio dell'Umanità dal 2014</p>
+            </div>
+            <div class="info-box">
+                <h3>
+                    <!-- Icon: target -->
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" fill="#F7E7D0"/><circle cx="12" cy="12" r="5" fill="#7A4A1A"/><circle cx="12" cy="12" r="2" fill="#F0DFBF"/></svg>
+                    Scopri il Percorso
+                </h3>
+                <p>Utilizza i pulsanti in alto per:</p>
+                <ul style="margin-top: 10px; padding-left: 20px;">
+                    <li><strong>Esplora la Filiera</strong> - Le 8 tappe dalla coltivazione alla trasformazione</li>
+                    <li><strong>Mappa del Territorio</strong> - Visualizza i luoghi reali di produzione a Cortemilia e dintorni</li>
+                    <li><strong>Traccia il Tuo Lotto</strong> - Scopri la storia delle nocciole con il codice di tracciabilità</li>
+                </ul>
+            </div>
+        </div>
+
+        <div id="filiera" class="section">
+            <button class="back-btn" onclick="showSection('home')">← Torna alla Home</button>
+            <h2>Le Tappe della Filiera</h2>
+            <div class="filiera-container">
+                <div class="tappa" onclick="toggleDetails(this)">
+                    <div class="circle" aria-hidden="true">
+                        <!-- Icon: tree / coltivazione -->
+                        <svg viewBox="0 0 24 24" width="40" height="40" xmlns="http://www.w3.org/2000/svg" fill="none">
+                            <path d="M12 2c1.1 0 2 .9 2 2 0 .36-.11.7-.28.99C15.2 5.36 16 6.61 16 8c0 1.66-1.34 3-3 3v6h4v2H7v-2h4v-6c-1.66 0-3-1.34-3-3 0-1.39.8-2.64 2.28-3.01C10.11 4.7 10 4.36 10 4c0-1.1.9-2 2-2z" fill="#7A4A1A" opacity="0.95"/>
+                            <circle cx="12" cy="9" r="2" fill="#F7E7D0"/>
+                        </svg>
+                        <!-- small nut mark (more detailed) -->
+                        <svg class="nut-mark" viewBox="0 0 24 24" width="22" height="22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                            <path d="M12 2c3 0 6 3 6 6 0 4-2 6-3 8s-3 3-5 3-4-2-5-4-2-5-1-8c1-3 3-6 8-6z" fill="#7A4A1A"/>
+                            <path d="M13.5 9.5c.8.8.8 1.6.2 2.8s-1.4 1.6-2 1.6-1-.5-1.3-1.4S10 10.8 11 10s1.8-.6 2.5-.5z" fill="#F7E7D0" opacity="0.95"/>
+                            <ellipse cx="15.2" cy="6.2" rx="0.9" ry="0.5" fill="#fff" opacity="0.6"/>
+                        </svg>
+                    </div>
+                    <div class="tappa-content">
+                        <div class="tappa-title">1. Coltivazione</div>
+                        <div class="tappa-desc">I noccioleti dell'Alta Langa curati tutto l'anno</div>
+                        <div class="tappa-details">
+                            <strong>Dettagli:</strong> La Tonda Gentile Trilobata cresce idealmente tra i 300 e 600 metri di altitudine. Durante l'anno si effettuano potature, concimazioni organiche e controlli fitosanitari. Il territorio di Cortemilia e delle Langhe offre condizioni pedoclimatiche uniche che conferiscono alla nocciola le sue caratteristiche organolettiche eccezionali.
+                        </div>
+                        <!-- small nut mark (more detailed) -->
+                        <svg class="nut-mark" viewBox="0 0 24 24" width="22" height="22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                            <path d="M12 2c3 0 6 3 6 6 0 4-2 6-3 8s-3 3-5 3-4-2-5-4-2-5-1-8c1-3 3-6 8-6z" fill="#7A4A1A"/>
+                            <path d="M13.5 9.5c.8.8.8 1.6.2 2.8s-1.4 1.6-2 1.6-1-.5-1.3-1.4S10 10.8 11 10s1.8-.6 2.5-.5z" fill="#F7E7D0" opacity="0.95"/>
+                            <ellipse cx="15.2" cy="6.2" rx="0.9" ry="0.5" fill="#fff" opacity="0.6"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="tappa" onclick="toggleDetails(this)">
+                    <div class="circle" aria-hidden="true">
+                        <!-- Icon: basket / raccolta -->
+                        <svg viewBox="0 0 24 24" width="40" height="40" xmlns="http://www.w3.org/2000/svg" fill="none">
+                            <path d="M4 10h16l-1.6 8.6A2 2 0 0 1 16.44 21H7.56a2 2 0 0 1-1.96-2.4L4 10z" fill="#7A4A1A" opacity="0.95"/>
+                            <path d="M9 10V7a3 3 0 0 1 6 0v3" stroke="#F7E7D0" stroke-width="1.2" fill="none"/>
+                        </svg>
+                        <!-- small nut mark (more detailed) -->
+                        <svg class="nut-mark" viewBox="0 0 24 24" width="22" height="22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                            <path d="M12 2c3 0 6 3 6 6 0 4-2 6-3 8s-3 3-5 3-4-2-5-4-2-5-1-8c1-3 3-6 8-6z" fill="#7A4A1A"/>
+                            <path d="M13.5 9.5c.8.8.8 1.6.2 2.8s-1.4 1.6-2 1.6-1-.5-1.3-1.4S10 10.8 11 10s1.8-.6 2.5-.5z" fill="#F7E7D0" opacity="0.95"/>
+                            <ellipse cx="15.2" cy="6.2" rx="0.9" ry="0.5" fill="#fff" opacity="0.6"/>
+                        </svg>
+                    </div>
+                    <div class="tappa-content">
+                        <div class="tappa-title">2. Raccolta</div>
+                        <div class="tappa-desc">Tra agosto e settembre, manuale o meccanizzata</div>
+                        <div class="tappa-details">
+                            <strong>Dettagli:</strong> La raccolta inizia quando le nocciole cadono naturalmente a terra, solitamente tra fine agosto e settembre. Può essere effettuata manualmente dai piccoli produttori o con macchine aspiranti per le produzioni maggiori. Nella zona di Cortemilia si producono circa 130.000-160.000 quintali di nocciole all'anno.
+                        </div>
+                        <!-- small nut mark (more detailed) -->
+                        <svg class="nut-mark" viewBox="0 0 24 24" width="22" height="22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                            <path d="M12 2c3 0 6 3 6 6 0 4-2 6-3 8s-3 3-5 3-4-2-5-4-2-5-1-8c1-3 3-6 8-6z" fill="#7A4A1A"/>
+                            <path d="M13.5 9.5c.8.8.8 1.6.2 2.8s-1.4 1.6-2 1.6-1-.5-1.3-1.4S10 10.8 11 10s1.8-.6 2.5-.5z" fill="#F7E7D0" opacity="0.95"/>
+                            <ellipse cx="15.2" cy="6.2" rx="0.9" ry="0.5" fill="#fff" opacity="0.6"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="tappa" onclick="toggleDetails(this)">
+                    <div class="circle" aria-hidden="true">
+                        <!-- Icon: sun / essiccazione -->
+                        <svg viewBox="0 0 24 24" width="40" height="40" xmlns="http://www.w3.org/2000/svg" fill="none">
+                            <circle cx="12" cy="12" r="5" fill="#F7E7D0"/>
+                            <g stroke="#7A4A1A" stroke-width="1.2">
+                                <path d="M12 1v2"/>
+                                <path d="M12 21v2"/>
+                                <path d="M4.2 4.2l1.4 1.4"/>
+                                <path d="M18.4 18.4l1.4 1.4"/>
+                                <path d="M1 12h2"/>
+                                <path d="M21 12h2"/>
+                                <path d="M4.2 19.8l1.4-1.4"/>
+                                <path d="M18.4 5.6l1.4-1.4"/>
+                            </g>
+                        </svg>
+                        <!-- small nut mark (more detailed) -->
+                        <svg class="nut-mark" viewBox="0 0 24 24" width="22" height="22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                            <path d="M12 2c3 0 6 3 6 6 0 4-2 6-3 8s-3 3-5 3-4-2-5-4-2-5-1-8c1-3 3-6 8-6z" fill="#7A4A1A"/>
+                            <path d="M13.5 9.5c.8.8.8 1.6.2 2.8s-1.4 1.6-2 1.6-1-.5-1.3-1.4S10 10.8 11 10s1.8-.6 2.5-.5z" fill="#F7E7D0" opacity="0.95"/>
+                            <ellipse cx="15.2" cy="6.2" rx="0.9" ry="0.5" fill="#fff" opacity="0.6"/>
+                        </svg>
+                    </div>
+                    <div class="tappa-content">
+                        <div class="tappa-title">3. Essiccazione</div>
+                        <div class="tappa-desc">Riduzione dell'umidità dal 25% al 5-6%</div>
+                        <div class="tappa-details">
+                            <strong>Dettagli:</strong> Fase fondamentale per la conservazione. Si effettua in essiccatoi ventilati a temperature controllate (28-30°C) per 5-7 giorni. Le aziende come Nocciole Marchisio a Cortemilia dispongono di centri specializzati per lo stoccaggio e l'essiccazione del prodotto conferito dai produttori locali.
+                        </div>
+                        <!-- small nut mark (more detailed) -->
+                        <svg class="nut-mark" viewBox="0 0 24 24" width="22" height="22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                            <path d="M12 2c3 0 6 3 6 6 0 4-2 6-3 8s-3 3-5 3-4-2-5-4-2-5-1-8c1-3 3-6 8-6z" fill="#7A4A1A"/>
+                            <path d="M13.5 9.5c.8.8.8 1.6.2 2.8s-1.4 1.6-2 1.6-1-.5-1.3-1.4S10 10.8 11 10s1.8-.6 2.5-.5z" fill="#F7E7D0" opacity="0.95"/>
+                            <ellipse cx="15.2" cy="6.2" rx="0.9" ry="0.5" fill="#fff" opacity="0.6"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="tappa" onclick="toggleDetails(this)">
+                    <div class="circle" aria-hidden="true">
+                        <!-- Icon: hammer / sgusciatura -->
+                        <svg viewBox="0 0 24 24" width="40" height="40" xmlns="http://www.w3.org/2000/svg" fill="none">
+                            <path d="M2 21l7-7 3 3 9-9 2 2-9 9-3-3-7 7z" fill="#7A4A1A" opacity="0.95"/>
+                            <rect x="13" y="3" width="6" height="4" rx="1" fill="#F7E7D0"/>
+                        </svg>
+                        <!-- small nut mark (more detailed) -->
+                        <svg class="nut-mark" viewBox="0 0 24 24" width="22" height="22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                            <path d="M12 2c3 0 6 3 6 6 0 4-2 6-3 8s-3 3-5 3-4-2-5-4-2-5-1-8c1-3 3-6 8-6z" fill="#7A4A1A"/>
+                            <path d="M13.5 9.5c.8.8.8 1.6.2 2.8s-1.4 1.6-2 1.6-1-.5-1.3-1.4S10 10.8 11 10s1.8-.6 2.5-.5z" fill="#F7E7D0" opacity="0.95"/>
+                            <ellipse cx="15.2" cy="6.2" rx="0.9" ry="0.5" fill="#fff" opacity="0.6"/>
+                        </svg>
+                    </div>
+                    <div class="tappa-content">
+                        <div class="tappa-title">4. Sgusciatura</div>
+                        <div class="tappa-desc">Rimozione del guscio legnoso</div>
+                        <div class="tappa-details">
+                            <strong>Dettagli:</strong> Lo storico stabilimento di sgusciatura a Cortemilia utilizza macchine che rompono delicatamente il guscio preservando l'integrità del seme. Le nocciole vengono separate dai gusci tramite ventilazione. I gusci possono essere riutilizzati come biomassa ecologica.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tappa" onclick="toggleDetails(this)">
+                    <div class="circle" aria-hidden="true">
+                        <!-- Icon: magnifier / selezione -->
+                        <svg viewBox="0 0 24 24" width="40" height="40" xmlns="http://www.w3.org/2000/svg" fill="none">
+                            <circle cx="11" cy="11" r="5" stroke="#7A4A1A" stroke-width="1.6" fill="#F7E7D0"/>
+                            <path d="M20 20l-4-4" stroke="#7A4A1A" stroke-width="1.6" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="tappa-content">
+                        <div class="tappa-title">5. Selezione e Calibratura</div>
+                        <div class="tappa-desc">Separazione per dimensione e qualità</div>
+                        <div class="tappa-details">
+                            <strong>Dettagli:</strong> Dopo un'accurata selezione qualitativa meccanica e manuale, le nocciole vengono calibrate per dimensione. Le migliori nocciole dell'Alta Langa raggiungono calibri di 15-17mm e oltre, molto ricercate dall'industria dolciaria di qualità per le loro caratteristiche uniche.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tappa" onclick="toggleDetails(this)">
+                    <div class="circle" aria-hidden="true">
+                        <!-- Icon: flame / tostatura -->
+                        <svg viewBox="0 0 24 24" width="40" height="40" xmlns="http://www.w3.org/2000/svg" fill="none">
+                            <path d="M12 2s4 3 4 7c0 5-4 7-4 13-2-4-6-5-6-10 0-4 3-8 6-10z" fill="#7A4A1A" opacity="0.95"/>
+                            <path d="M12 6s1.8 1.6 1.8 3.4c0 2.3-1.8 3.6-1.8 6-0.9-2-2.4-2.8-2.4-5 0-2.2 1.5-4.4 2.4-4.4z" fill="#F7E7D0"/>
+                        </svg>
+                    </div>
+                    <div class="tappa-content">
+                        <div class="tappa-title">6. Tostatura</div>
+                        <div class="tappa-desc">Sviluppo dell'aroma caratteristico</div>
+                        <div class="tappa-details">
+                            <strong>Dettagli:</strong> La tostatura (160-180°C per 20-30 minuti) sviluppa gli aromi intensi che rendono famosa la Nocciola Piemonte IGP. La Tonda Gentile Trilobata ha una resa particolarmente elevata dopo la tostatura e mantiene un aroma persistente e caratteristico molto apprezzato da pasticceri e chef di tutto il mondo.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tappa" onclick="toggleDetails(this)">
+                    <div class="circle" aria-hidden="true">
+                        <!-- Icon: gear / trasformazione -->
+                        <svg viewBox="0 0 24 24" width="40" height="40" xmlns="http://www.w3.org/2000/svg" fill="none">
+                            <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" fill="#F7E7D0"/>
+                            <path d="M19.4 15a1.9 1.9 0 0 0 .1-.6 1.9 1.9 0 0 0-.1-.6l2-1.6-2-3.4-2.4.5a6.2 6.2 0 0 0-1.1-.6L14 5h-4l-.9 2.3c-.4.2-.8.4-1.1.6L6.6 7.4 4.6 10.8l2 1.6c-.1.2-.1.4-.1.6 0 .2 0 .4.1.6l-2 1.6 2 3.4 2.4-.5c.3.2.7.4 1.1.6L10 19h4l.9-2.3c.4-.2.8-.4 1.1-.6l2.4.5 2-3.4-2-1.6z" fill="#7A4A1A" opacity="0.95"/>
+                        </svg>
+                    </div>
+                    <div class="tappa-content">
+                        <div class="tappa-title">7. Trasformazione</div>
+                        <div class="tappa-desc">Dalla nocciola ai prodotti finiti</div>
+                        <div class="tappa-details">
+                            <strong>Dettagli:</strong> Le aziende dell'Alta Langa come Nocciolanghe, Corilanga e le piccole realtà artigianali trasformano le nocciole in: farina, granella di vari calibri (1/3mm, 2/4mm, 3/5mm), pasta pura 100%, creme spalmabili e nocciole intere tostate. Ogni prodotto segue le ricette tradizionali piemontesi tramandate da generazioni.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tappa" onclick="toggleDetails(this)">
+                    <div class="circle" aria-hidden="true">
+                        <!-- Icon: box / confezionamento -->
+                        <svg viewBox="0 0 24 24" width="40" height="40" xmlns="http://www.w3.org/2000/svg" fill="none">
+                            <path d="M3 7l9-4 9 4v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7z" fill="#7A4A1A" opacity="0.95"/>
+                            <path d="M12 3v14" stroke="#F7E7D0" stroke-width="1.2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="tappa-content">
+                        <div class="tappa-title">8. Confezionamento e Distribuzione</div>
+                        <div class="tappa-desc">Dalle Langhe al mondo intero</div>
+                        <div class="tappa-details">
+                            <strong>Dettagli:</strong> I prodotti vengono confezionati garantendo la tracciabilità completa dalla singola azienda agricola al prodotto finito. Ogni confezione riporta il marchio IGP, garanzia di origine e qualità. Le nocciole di Cortemilia raggiungono le migliori industrie dolciarie, pasticcerie e ristoranti stellati in Italia e nel mondo.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="mappa" class="section">
+            <button class="back-btn" onclick="showSection('home')">← Torna alla Home</button>
+            <h2>Mappa del Territorio</h2>
+            <p>Esplora i luoghi reali della filiera della nocciola a Cortemilia e nell'Alta Langa. Clicca sui marker per informazioni dettagliate.</p>
+            <div id="map"></div>
+        </div>
+
+        <div id="traccia" class="section">
+            <button class="back-btn" onclick="showSection('home')">← Torna alla Home</button>
+            <h2>Traccia il Tuo Lotto</h2>
+            <p>Inserisci il codice del lotto presente sulla confezione per scoprire la storia completa delle tue nocciole.</p>
+            <div class="traccia-form">
+                <input type="text" class="traccia-input" id="lottoInput" placeholder="Es: NCL-2024-001" list="lottiList">
+                <datalist id="lottiList"></datalist>
+                <div style="margin-top:10px;display:flex;gap:8px">
+                    <button class="btn btn-primary" onclick="tracciaLotto()">Traccia Lotto</button>
+                    <button class="btn btn-tertiary" onclick="document.getElementById('lottoInput').value=''">Pulisci</button>
+                </div>
+                <div id="lottoResult" class="result-card"></div>
+            </div>
+        </div>
+
+        <footer>
+            IISS Piera Cillario Ferrero — Artigianato & Made in Italy · Fiera di Santa Caterina
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script>
+        let map;
+        const lotti = {
+            'NCL-2024-001': {
+                nome: 'Lotto Nocciolanghe - Biologico Certificato',
+                raccolta: '12 Settembre 2024',
+                produttore: 'Nocciolanghe S.r.l.',
+                zona: 'Cortemilia - Alta Langa',
+                metodo: 'Agricoltura biologica certificata BIOS',
+                certificazione: 'Biologico (Cert. n. 18321), Nocciola Piemonte IGP, Codice Operatore TA12',
+                timeline: [
+                    { data: '12/09/2024', evento: 'Raccolta in noccioleti biologici certificati a Cortemilia' },
+                    { data: '13/09/2024', evento: 'Conferimento e stoccaggio presso stabilimento Cortemilia' },
+                    { data: '14/09/2024', evento: 'Essiccazione controllata a 28-30°C per 6 giorni' },
+                    { data: '20/09/2024', evento: 'Sgusciatura con tecnologia delicata' },
+                    { data: '22/09/2024', evento: 'Selezione qualitativa e calibratura premium (>17mm)' },
+                    { data: '25/09/2024', evento: 'Tostatura artigianale con profilo temperatura personalizzato' },
+                    { data: '27/09/2024', evento: 'Trasformazione in pasta pura 100% nocciola' },
+                    { data: '30/09/2024', evento: 'Confezionamento e controllo qualità finale IGP' }
+                ]
+            },
+            'NCL-2024-002': {
+                nome: 'Lotto Nocciole Marchisio - Produzione Standard',
+                raccolta: '8 Settembre 2024',
+                produttore: 'Nocciole Marchisio S.p.A.',
+                zona: 'Cortemilia e Valle Belbo',
+                metodo: 'Raccolta meccanizzata da produttori conferenti',
+                certificazione: 'Nocciola Piemonte IGP Langhe',
+                timeline: [
+                    { data: '08/09/2024', evento: 'Raccolta meccanizzata da produttori locali dell\'Alta Langa' },
+                    { data: '09/09/2024', evento: 'Conferimento presso centro raccolta storico di Cortemilia' },
+                    { data: '10/09/2024', evento: 'Pulizia e inizio essiccazione in impianti controllati' },
+                    { data: '16/09/2024', evento: 'Sgusciatura presso stabilimento Viale G. Marconi, Cortemilia' },
+                    { data: '18/09/2024', evento: 'Selezione meccanica e calibratura (calibro 13-15mm)' },
+                    { data: '20/09/2024', evento: 'Tostatura per produzione semilavorati industria' },
+                    { data: '22/09/2024', evento: 'Macinatura e setacciatura - Produzione granella 2/4mm' },
+                    { data: '24/09/2024', evento: 'Confezionamento per clienti industria dolciaria' }
+                ]
+            },
+            'NCL-2024-003': {
+                nome: 'Lotto Corilanga - Filiera Corta',
+                raccolta: '15 Settembre 2024',
+                produttore: 'Corilanga Società Cooperativa',
+                zona: 'Rocchetta Belbo e Alta Langa',
+                metodo: 'Raccolta dai soci produttori, filiera corta garantita',
+                certificazione: 'Nocciola Piemonte IGP delle Langhe',
+                timeline: [
+                    { data: '15/09/2024', evento: 'Raccolta dai noccioleti dei soci cooperativa Rocchetta Belbo' },
+                    { data: '16/09/2024', evento: 'Conferimento diretto presso sede cooperativa' },
+                    { data: '17/09/2024', evento: 'Essiccazione naturale assistita' },
+                    { data: '23/09/2024', evento: 'Sgusciatura e prima selezione manuale' },
+                    { data: '25/09/2024', evento: 'Calibratura e selezione qualità extra (15-17mm)' },
+                    { data: '28/09/2024', evento: 'Tostatura tradizionale media intensità' },
+                    { data: '01/10/2024', evento: 'Produzione crema spalmabile artigianale 60% nocciole' },
+                    { data: '03/10/2024', evento: 'Confezionamento per vendita diretta e negozi locali' }
+                ]
+            },
+            'NCL-2024-004': {
+                nome: 'Lotto Sperimentale - Istituto Cillario Ferrero',
+                raccolta: '25 Settembre 2024',
+                produttore: 'IISS Piera Cillario Ferrero - Sede Cortemilia',
+                zona: 'Parcella didattica Cortemilia',
+                metodo: 'Raccolta didattica studenti indirizzo Made in Italy',
+                certificazione: 'Progetto formativo filiera nocciola IGP',
+                timeline: [
+                    { data: '25/09/2024', evento: 'Raccolta didattica con studenti presso noccioleto scolastico' },
+                    { data: '26/09/2024', evento: 'Analisi parametri qualitativi in laboratorio didattico' },
+                    { data: '27/09/2024', evento: 'Essiccazione monitorata dagli studenti (dati temperatura/umidità)' },
+                    { data: '03/10/2024', evento: 'Sgusciatura e calcolo rese presso laboratorio' },
+                    { data: '05/10/2024', evento: 'Selezione e classificazione merceologica' },
+                    { data: '08/10/2024', evento: 'Tostatura sperimentale con profili temperatura variabili' },
+                    { data: '10/10/2024', evento: 'Analisi sensoriale e degustazione comparativa' },
+                    { data: '12/10/2024', evento: 'Elaborazione dati e presentazione progetto filiera' }
+                ]
+            }
+        };
+
+        // showSection with loader animation for smooth transitions
+        function showSection(sectionId) {
+            const overlay = document.getElementById('pageLoader');
+            overlay.classList.add('show');
+            // small delay to let overlay appear
+            setTimeout(() => {
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                const target = document.getElementById(sectionId);
+                if (target) target.classList.add('active');
+                if (sectionId === 'mappa' && !map) initMap();
+                // animate cards in filiera
+                if (sectionId === 'filiera') animateCards();
+                // hide overlay after content is ready
+                setTimeout(() => overlay.classList.remove('show'), 300);
+            }, 220);
+        }
+
+        function toggleDetails(element) {
+            const details = element.querySelector('.tappa-details');
+            const allDetails = document.querySelectorAll('.tappa-details');
+            // close others
+            allDetails.forEach(d => {
+                if (d !== details) {
+                    d.classList.remove('show');
+                    const parent = d.closest('.tappa'); if (parent) parent.classList.remove('open');
+                }
+            });
+            // toggle this one and a parent 'open' class for arrow rotation
+            const isOpen = details.classList.toggle('show');
+            if (isOpen) element.classList.add('open'); else element.classList.remove('open');
+        }
+
+        function initMap() {
+            map = L.map('map').setView([44.5708, 8.1875], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(map);
+
+            const locations = [
+                { coords: [44.5708, 8.1875], title: 'IISS Piera Cillario Ferrero - Cortemilia', desc: '<strong>Indirizzo:</strong> Corso Einaudi 12, Cortemilia<br>Centro di formazione sulla filiera della nocciola.' },
+                { coords: [44.5695, 8.1890], title: 'Nocciole Marchisio S.p.A.', desc: 'Storico stabilimento di sgusciatura e centro di raccolta.' },
+                { coords: [44.5720, 8.1860], title: 'Nocciolanghe S.r.l.', desc: 'Azienda specializzata nella produzione biologica della Nocciola Piemonte IGP.' },
+                { coords: [44.5980, 8.2450], title: 'Corilanga - Rocchetta Belbo', desc: 'Società Cooperativa di produttori.' },
+                { coords: [44.5650, 8.1800], title: 'Noccioleti Alta Langa', desc: 'Colline 300-600m s.l.m. area vocata per la Tonda Gentile Trilobata.' }
+            ];
+
+            // icona semplice a forma di nocciola (divIcon con SVG)
+            const nocciolaHtml = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" fill="#7A4A1A"/><circle cx="12" cy="12" r="6" fill="#F7E7D0"/></svg>`;
+            const nocciolaIcon = L.divIcon({ html: nocciolaHtml, className: '', iconSize: [28,28] });
+
+            locations.forEach(loc => {
+                L.marker(loc.coords, { icon: nocciolaIcon }).addTo(map).bindPopup(`<h3>${loc.title}</h3><div>${loc.desc}</div>`);
+            });
+        }
+
+        function tracciaLotto() {
+            const codice = document.getElementById('lottoInput').value.trim().toUpperCase();
+            const resultEl = document.getElementById('lottoResult');
+            resultEl.innerHTML = '';
+            resultEl.classList.remove('show');
+            if (!codice) { resultEl.innerHTML = '<p>Inserisci un codice di lotto valido.</p>'; resultEl.classList.add('show'); return; }
+
+            const lotto = lotti[codice];
+            if (!lotto) { resultEl.innerHTML = `<p>Lotto non trovato per il codice <strong>${codice}</strong>.</p>`; resultEl.classList.add('show'); return; }
+
+            let html = `<div class="result-head"><div><h3>${lotto.nome}</h3><div style="color:var(--muted);font-size:0.95rem"><strong>Produttore:</strong> ${lotto.produttore} • <strong>Raccolta:</strong> ${lotto.raccolta}</div></div><div class="badges"><span class="badge">IGP</span></div></div>`;
+            html += `<p style="margin-top:10px;color:var(--muted)"><strong>Zona:</strong> ${lotto.zona} • <strong>Metodo:</strong> ${lotto.metodo}</p>`;
+            html += '<div class="timeline">';
+            lotto.timeline.forEach(item => { html += `<div class="timeline-item"><strong>${item.data}</strong> — ${item.evento}</div>`; });
+            html += '</div>';
+            html += `<div class="action-row"><button class="btn btn-secondary" onclick="copyCode('${codice}')">Copia codice</button><button class="btn btn-tertiary" onclick="printLotto('${codice}')">Stampa</button></div>`;
+
+            resultEl.innerHTML = html;
+            resultEl.classList.add('show');
+            resultEl.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function copyCode(code){ navigator.clipboard?.writeText(code).then(()=>alert('Codice copiato: '+code)).catch(()=>{alert('Copia non supportata in questo browser');}); }
+        function printLotto(code){ const lotto=lotti[code]; if(!lotto){alert('Lotto non trovato');return;} const w=window.open('','_blank'); w.document.write(`<html><head><title>${lotto.nome}</title></head><body><h1>${lotto.nome}</h1><p><strong>Produttore:</strong> ${lotto.produttore}</p><p><strong>Raccolta:</strong> ${lotto.raccolta}</p><div>${lotto.timeline.map(i=>`<div><strong>${i.data}</strong> - ${i.evento}</div>`).join('')}</div></body></html>`); w.document.close(); w.print(); }
+
+        // animate cards with small stagger when filiera opens
+        function animateCards(){
+            const cards = document.querySelectorAll('#filiera .tappa');
+            cards.forEach((c,i)=>{
+                c.classList.add('animate-up');
+                c.classList.remove('show');
+                setTimeout(()=>{ c.classList.add('show'); }, i*90);
+            });
+        }
+
+        function populateDatalist(){ const dl=document.getElementById('lottiList'); Object.keys(lotti).forEach(k=>{ const o=document.createElement('option'); o.value=k; dl.appendChild(o); }); }
+
+        document.addEventListener('DOMContentLoaded', ()=>{ populateDatalist(); });
+    </script>
+</body>
+</html>
